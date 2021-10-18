@@ -1,0 +1,8 @@
+1) build scene.
+    Add closest robot we have
+
+    put in tree
+    put in basket
+2) inverse kinematics
+3) gazebo
+cs info should go here

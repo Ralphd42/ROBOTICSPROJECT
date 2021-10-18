@@ -1,0 +1,27 @@
+function sysCall_init()
+    -- Take a few handles from the scene:
+    simBase=sim.getObjectHandle(sim.handle_self)
+    simTip=sim.getObjectHandle('IRB140_tip')
+    simTarget=sim.getObjectHandle('IRB140_target')
+    
+    ikEnv=simIK.createEnvironment()
+    
+    -- Prepare the 2 ik groups, using the convenience function 'simIK.addIkElementFromScene':
+
+    ikGroup_undamped=simIK.createIkGroup(ikEnv)
+    simIK.setIkGroupCalculation(ikEnv,ikGroup_undamped,simIK.method_pseudo_inverse,0,10)
+    simIK.addIkElementFromScene(ikEnv,ikGroup_undamped,simBase,simTip,simTarget,simIK.constraint_pose)
+    ikGroup_damped=simIK.createIkGroup(ikEnv)
+    simIK.setIkGroupCalculation(ikEnv,ikGroup_damped,simIK.method_damped_least_squares,0.3,99)
+    simIK.addIkElementFromScene(ikEnv,ikGroup_damped,simBase,simTip,simTarget,simIK.constraint_pose)
+end
+
+function sysCall_actuation()
+    if simIK.applyIkEnvironmentToScene(ikEnv,ikGroup_undamped,true)~=simIK.result_success then
+        simIK.applyIkEnvironmentToScene(ikEnv,ikGroup_damped)
+    end
+end
+
+function sysCall_cleanup()
+    simIK.eraseEnvironment(ikEnv)
+end

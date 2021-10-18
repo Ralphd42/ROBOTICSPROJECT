@@ -1,0 +1,112 @@
+function executeMovement(id)
+    movementToExecute[#movementToExecute+1]=id
+end
+
+function legacyRapiExecuteMovement(intData,floatData,stringData,buffer)
+    movementToExecute[#movementToExecute+1]=buffer
+    return {},{},{},''
+end
+
+function movementDataFunction(movData)
+    allMovementData[movData.id]=movData
+end
+
+function legacyRapiMovementDataFunction(intData,floatData,stringData,buffer)
+    if not messagePack then
+        messagePack=require('messagePack')
+        messagePack.set_string('string')
+    end
+    local movData=messagePack.unpack(buffer)
+    allMovementData[movData.id]=movData
+    return {},{},{},''
+end
+
+function applyJointTargetPositions(handles,vals)
+    for i=1,#handles,1 do
+        if sim.getJointMode(handles[i])==sim.jointmode_force and sim.isDynamicallyEnabled(handles[i]) then
+            sim.setJointTargetPosition(handles[i],vals[i])
+        else    
+            sim.setJointPosition(handles[i],vals[i])
+        end
+    end
+end
+
+function movCallback(config,vel,accel,handles)
+    applyJointTargetPositions(handles,config)
+end
+
+function sysCall_init()
+    stringSignalName='blueArm_executedMovId'
+    movementToExecute={}
+    allMovementData={}
+    currentVel={0,0,0,0,0,0,0}
+    currentAccel={0,0,0,0,0,0,0}
+    maxJerk={100,100,100,100,100,100}
+    sim.setStringSignal(stringSignalName,'ready')
+    jointHandles={-1,-1,-1,-1,-1,-1}
+    currentPosVelAccel={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+    for i=1,6,1 do
+        jointHandles[i]=sim.getObjectHandle('blueArm_joint'..i)
+    end
+    corout = coroutine.create(coroutineStart)
+end
+
+function coroutineStart()
+    while true do
+        if #movementToExecute>0 then
+            local id=table.remove(movementToExecute,1)
+            local movementData=allMovementData[id]
+            allMovementData[id]=nil
+            if movementData.type=='mov' then
+                local currentConfig={}
+                for i=1,#jointHandles,1 do
+                    currentConfig[i]=sim.getJointPosition(jointHandles[i])
+                end
+                newPos,currentVel,currentAccel=sim.moveToConfig(-1,currentConfig,currentVel,currentAccel,movementData.maxVel,movementData.maxAccel,maxJerk,movementData.targetConfig,movementData.targetVel,movCallback,jointHandles)
+            end
+            if movementData.type=='pts' then
+                executePtpMovement(jointHandles,movementData)
+            end
+            sim.setStringSignal(stringSignalName,id)
+        else
+            sim.switchThread() -- in a coroutine will execute a yield instead
+        end
+    end
+end
+
+function sysCall_actuation()
+    if coroutine.status(corout)~='dead' then
+        local ok,errorMsg=coroutine.resume(corout)
+        if errorMsg then
+            error(debug.traceback(corout,errorMsg),2)
+        end
+    end
+end
+
+function executePtpMovement(handles,data)
+    -- Apply joint configs in an interpolated manner:
+    local lb=sim.setThreadAutomaticSwitch(false)
+    local path={}
+    for i=1,#data.times,1 do
+        path[(i-1)*6+1]=data.j1[i]
+        path[(i-1)*6+2]=data.j2[i]
+        path[(i-1)*6+3]=data.j3[i]
+        path[(i-1)*6+4]=data.j4[i]
+        path[(i-1)*6+5]=data.j5[i]
+        path[(i-1)*6+6]=data.j6[i]
+    end
+    local startTime=sim.getSimulationTime()
+    local t=0
+    while t<data.times[#data.times] do
+        local conf=sim.getPathInterpolatedConfig(path,data.times,t)
+        applyJointTargetPositions(handles,conf)
+        sim.switchThread()
+        t=sim.getSimulationTime()-startTime
+    end
+    local conf=sim.getPathInterpolatedConfig(path,data.times,data.times[#data.times])
+    applyJointTargetPositions(handles,conf)
+    sim.setThreadAutomaticSwitch(lb)
+end
+
+
+
