@@ -1,6 +1,6 @@
 # Make sure to have CoppeliaSim running, with followig scene loaded:
 #
-# scenes/messaging/RDmovementViaRemoteApi.ttt
+# .ttt
 # If fail to connect try the following 
 # simRemoteApi.start(19999)
 # Do not launch simulation, then run this script
@@ -23,6 +23,7 @@ except:
     print ('simRemoteApi.start(19999)')
 
 import math
+from posixpath import join
 import msgpack
 import time
 class Client:
@@ -40,65 +41,151 @@ class Client:
 
 with Client() as client:
     #constants
-    sIntv =.0625
+    sIntv =0.000000001#.0625
     def degToRad(deg  ):
         return deg* math.pi/180
     def radToDeg(rad):
         return rad*180/math.pi
 
-    def TrackJoint(hndl):
+    def TrackJointh(hndl):
         i=-180
         while i<180:
             
             sim.simxSetJointPosition(client.id,hndl,i*math.pi/180,sim.simx_opmode_blocking)
             c,pos = sim.simxGetJointPosition(client.id,hndl,sim.simx_opmode_blocking)
+            lc =getArmPos()
+            print (lc)
             print( "jp = ",i, c, radToDeg(   pos)   )
             i +=1
-            time.sleep(sIntv)  
+            #time.sleep(sIntv)
+    def TrackJoint(jname):
+        print (jname)
+        jnt =joints[jname]
+        print(jnt)
+        i=jnt["min"]
+        while i<=jnt["max"]:
+            
+            sim.simxSetJointPosition(client.id,jnt["handle"],i*math.pi/180,sim.simx_opmode_blocking)
+            c,pos = sim.simxGetJointPosition(client.id,jnt["handle"],sim.simx_opmode_blocking)
+            lc =getArmPos()
+            print ("i {}|p {}|arm {} ".format(i,radToDeg(   pos),lc))
+            #print( "jp = ",i, c, radToDeg(   pos)   )
+            i +=1
+            #time.sleep(sIntv)
+              
+    def getArmPos():
+        st, loc =sim.simxGetObjectPosition(client.id,rFingerh, -1,  sim.simx_opmode_blocking)
+        return loc
 
+    def movAll( aAll):
+        w=0
+        while w<len(aAll):
+            s = "j" + str(w+1)
+            jnt =joints[s]
+            sim.simxSetJointPosition(client.id,jnt["handle"],aAll[w]*math.pi/180,sim.simx_opmode_blocking)
+            w+=1
 
+    
+    def invK():
+        stp=1
+        for a in range (joints["j1"]["min"],joints["j1"]["max"],stp):
+            for b in range (joints["j2"]["min"],joints["j2"]["max"],stp):
+                for c in range (joints["j3"]["min"],joints["j3"]["max"],stp):
+                    for d in range (joints["j4"]["min"],joints["j4"]["max"],stp):
+                        for e in range (joints["j5"]["min"],joints["j5"]["max"],stp):
+                            for f in range (joints["j6"]["min"],joints["j6"]["max"],stp):
+                                for g in range (joints["j7"]["min"],joints["j7"]["max"],stp):
+                                    movAll([a,b,c,d,e,f,g])
 
-
-
+    
+    
+    
+    
+    
+    
     print("running")
 
     if client.id!=-1:
-        
         print ('Connected to remote API server')
-
         Yumi= 'YUMI'
-        client.id    
-        rFinger = "rFinger" 
-        j1      = "yumi_joint_2_r"
-        j3      = "yumi_joint_3_r"
+        rFinger = "gripper_r_finger_r_visual"
+        #get joinds store in massive dict
         ec,rFingerh =sim.simxGetObjectHandle(client.id,rFinger,sim.simx_opmode_blocking)
+        print( "ecf",ec)
         ec,Yumih = sim.simxGetObjectHandle(client.id,Yumi,sim.simx_opmode_blocking)
-        ec,j1h   = sim.simxGetObjectHandle(client.id,j1,sim.simx_opmode_blocking)
-        ec,j3h   = sim.simxGetObjectHandle(client.id,j3,sim.simx_opmode_blocking)
+        print ("ecy",ec)
+        joints ={}
+        joints ["j1"] ={"name":"yumi_joint_1_r", "handle":0, "min":-169,"max":169}
+        joints ["j2"] ={"name":"yumi_joint_2_r", "handle":0, "min":-144,"max": 44}
+        joints ["j3"] ={"name":"yumi_joint_3_r", "handle":0, "min":-124,"max": 80  }
+        joints ["j4"] ={"name":"yumi_joint_4_r", "handle":0, "min":-290  ,"max":290  }
+        joints ["j5"] ={"name":"yumi_joint_5_r", "handle":0, "min":-88   ,"max":138  }
+        joints ["j6"] ={"name":"yumi_joint_6_r", "handle":0, "min":-229  ,"max":229  }
+        joints ["j7"] ={"name":"yumi_joint_7_r", "handle":0, "min":-169,"max":169}
+        i=1
+        while i<8:
+            s = "j" + str(i) 
+            ec,h   = sim.simxGetObjectHandle(client.id,joints[s]["name"],sim.simx_opmode_blocking)
+            if ec!=0:
+                print("Failed getting handles",ec ,s,joints[s]["name"])
+            joints[s]["handle"] = h
+            i+=1 
+
+        
+        
+
+
+
+
+
+
+        
+
+        
+             
+        
+        #j1      = "yumi_joint_1_r"#"yumi_link_1_r_visible" 
+        #j2      = "yumi_joint_2_r"
+        #j3      = "yumi_joint_3_r"
+        #j4      = "yumi_joint_4_r"
+        #j5      = "yumi_joint_5_r"
+        #j6      = "yumi_joint_6_r"
+
+        
+        
+        
+        #ec,j2h   = sim.simxGetObjectHandle(client.id,j2,sim.simx_opmode_blocking)
+        #ec,j3h   = sim.simxGetObjectHandle(client.id,j3,sim.simx_opmode_blocking)
+        #ec,j4h   = sim.simxGetObjectHandle(client.id,j4,sim.simx_opmode_blocking)
+        #ec,j5h   = sim.simxGetObjectHandle(client.id,j5,sim.simx_opmode_blocking)
+        #ec,j6h   = sim.simxGetObjectHandle(client.id,j6,sim.simx_opmode_blocking)
         #client.stringSignalName1=RobotArm+'_executedMovId'
         #f3dout = open(client.fname, "a")
-        st, loc =sim.simxGetObjectPosition(client.id,Yumih, -1,  sim.simx_opmode_blocking)
-        print(st )
-        print (loc) 
+        #st, loc =sim.simxGetObjectPosition(client.id,Yumih, -1,  sim.simx_opmode_blocking)
+        #print(st )
+        #print (loc) 
+        
         #move to center
         err, pos = sim.simxGetObjectPosition(client.id,Yumih,-1,sim.simx_opmode_blocking)  
         sim.simxSetObjectPosition(client.id,Yumih,-1,[0,0,0],sim.simx_opmode_blocking)
         sim.simxSetObjectOrientation(client.id,Yumih,-1,[0,0,0],sim.simx_opmode_blocking)
         # lets get moving some joints
-        TrackJoint(j3h)
+        
+        sim.simxSetJointPosition(client.id,joints ["j3"]["handle"],0,sim.simx_opmode_blocking)
+        #TrackJoint(joints["j5"]["handle"])
+        #TrackJoint("j5")
+        invK()
         
         
         
-        
-        
-        i=-180
-        while i<180:
-            
-            sim.simxSetJointPosition(client.id,j1h,i*math.pi/180,sim.simx_opmode_blocking)
-            c,pos = sim.simxGetJointPosition(client.id,j1h,sim.simx_opmode_blocking)
-            print( "jp = ",i, c, radToDeg(   pos)   )
-            i +=1
-            time.sleep(sIntv)
+        #i=-180
+        ##while i<180:
+         #   
+         #   sim.simxSetJointPosition(client.id,j1h,i*math.pi/180,sim.simx_opmode_blocking)
+         #   c,pos = sim.simxGetJointPosition(client.id,j1h,sim.simx_opmode_blocking)
+         #   print( "jp = ",i, c, radToDeg(   pos)   )
+         #   i +=1
+         #   time.sleep(sIntv)
 
         sim.simxStopSimulation(client.id,sim.simx_opmode_blocking)
         
