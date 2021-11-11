@@ -5,4 +5,12 @@
     put in basket
 2) inverse kinematics
 3) gazebo
+
+
 cs info should go here
+
+
+11/11/2021
++ add threshold variables
++ save to file using threshhold variables
+    file writer

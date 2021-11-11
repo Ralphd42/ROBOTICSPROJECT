@@ -30,6 +30,7 @@ class Client:
     def __enter__(self):
         self.fname ='ThreeDPlotData' #change to something better later this will hold xyz data
         self.executedMovId1='notReady'
+        self.fname="invk.txt"
          
         sim.simxFinish(-1) # just in case, close all opened connections
         self.id=sim.simxStart('127.0.0.1',19999,True,True,5000,5) # Connect to CoppeliaSim
@@ -38,8 +39,23 @@ class Client:
     def __exit__(self,*err):
         sim.simxFinish(-1)
         print ('Program ended')
+#define workspace
+#this will be the actual space the robot will work in
+# it isn't totally the correct workspace, because it will have to return to the basket and reset
+#x:0.22187452018260956 y:0.3554052412509918 z:0.45164451003074646
+xMin = 0.15
+xMax = 0.20
+yMin = 0.25
+yMax = 0.35
+zMin = 0.25
+zMax = 0.35
+useWorkSpace =False  # this variable will indicate that the reverse kinematics is only saving items for workspace 
+
+
 
 with Client() as client:
+    #INverseKinematics file
+    f3dout = open(client.fname, "a")
     #constants
     sIntv =0.000000001#.0625
     def degToRad(deg  ):
@@ -77,6 +93,13 @@ with Client() as client:
         st, loc =sim.simxGetObjectPosition(client.id,rFingerh, -1,  sim.simx_opmode_blocking)
         return loc
 
+    def getArmOrientation():
+        #st, loc =sim.simxGetObjectPosition(client.id,rFingerh, -1,  sim.simx_opmode_blocking)
+        st, orr=sim.simxGetObjectOrientation(client.id,rFingerh,-1,sim.simx_opmode_blocking)
+        return orr
+
+    
+
     def movAll( aAll):
         w=0
         while w<len(aAll):
@@ -96,8 +119,15 @@ with Client() as client:
                             for f in range (joints["j6"]["min"],joints["j6"]["max"],stp):
                                 for g in range (joints["j7"]["min"],joints["j7"]["max"],stp):
                                     movAll([a,b,c,d,e,f,g])
+                                    lc =getArmPos()
+                                    #is orientation correct
+                                    orr =getArmOrientation()
+                                    print ("ORR -{} \n".format(orr))
+                                    #is distance corect
+                                    
+                                    txtOutLn = "{},{},{},{},{},{},{},{},{},{}\n".format(lc[0],lc[1],lc[2],a,b,c,d,e,f,g       )
+                                    f3dout.write(txtOutLn)
 
-    
     
     
     
@@ -134,8 +164,7 @@ with Client() as client:
         
         
 
-
-
+        
 
 
 
@@ -174,6 +203,24 @@ with Client() as client:
         sim.simxSetJointPosition(client.id,joints ["j3"]["handle"],0,sim.simx_opmode_blocking)
         #TrackJoint(joints["j5"]["handle"])
         #TrackJoint("j5")
+        #sim.simxSetObjectOrientation(client.id,rFingerh,-1,[0,0,2],sim.simx_opmode_blocking)
+
+        #sim.simxSetObjectOrientation(client.id,rFingerh,-1,[0,0,0],sim.simx_opmode_blocking)
+
+        #sim.simxSetObjectOrientation(client.id,rFingerh,-1,[.5,0,0],sim.simx_opmode_blocking)
+        
+        #TEST ORIENTATION
+        #ps=0
+        #while ps<2:
+        
+        #    sim.simxSetObjectOrientation(client.id,Yumih,-1,[0,0,ps],sim.simx_opmode_blocking)
+        #    ps+=.01
+        #    print (ps,radToDeg(ps))
+        
+        
+
+        
+        
         invK()
         
         
