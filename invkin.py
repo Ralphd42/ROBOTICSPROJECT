@@ -21,7 +21,7 @@ except:
     print ('or appropriately adjust the file "sim.py"')
     print ('--------------------------------------------------------------')
     print ('simRemoteApi.start(19999)')
-
+#import sim
 import math
 from posixpath import join
 import msgpack
@@ -112,7 +112,7 @@ with Client() as client:
     def testWS ( jPos):
         retval =True
         if useWorkSpace:
-            print("Using Workspace")
+            #print("Using Workspace")
             if jPos[0] > xMax or jPos[0]< xMin or jPos[1] > yMax or jPos[1]< yMin or jPos[2] > zMax or jPos[2]< zMin:
                 retval=False 
         return retval
@@ -133,9 +133,10 @@ with Client() as client:
                                     lc =getArmPos()
                                     #is orientation correct
                                     orr =getArmOrientation()
-                                    print ("ORR -{} \n".format(orr))
+                                    
                                     #is distance corect
                                     if( testWS(lc)):
+                                        print ("ORR -{} \n".format(orr))
                                         txtOutLn = "{},{},{},{},{},{},{},{},{},{}\n".format(lc[0],lc[1],lc[2],a,b,c,d,e,f,g       )
                                         f3dout.write(txtOutLn)
 
