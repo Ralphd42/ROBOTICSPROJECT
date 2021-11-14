@@ -11,15 +11,6 @@
 # in programming/remoteApiBindings/lib/lib
 # Additionally you will need the python math and msgpack modules
 
-#this is the procedure to get the inverse kinematics
-# it will exclude based on Angle of the actuator and a workspace.  Although not a true workspace
-
-
-
-
-
-
-
 try:
     import sim
 except:
@@ -30,16 +21,16 @@ except:
     print ('or appropriately adjust the file "sim.py"')
     print ('--------------------------------------------------------------')
     print ('simRemoteApi.start(19999)')
-#import sim
+
 import math
 from posixpath import join
 import msgpack
 import time
 class Client:
     def __enter__(self):
-        
-        #self.executedMovId1='notReady'
-        self.fname="invkWS.txt"
+        self.fname ='ThreeDPlotData' #change to something better later this will hold xyz data
+        self.executedMovId1='notReady'
+        self.fname="invk.txt"
          
         sim.simxFinish(-1) # just in case, close all opened connections
         self.id=sim.simxStart('127.0.0.1',19999,True,True,5000,5) # Connect to CoppeliaSim
@@ -58,16 +49,8 @@ yMin = 0.25
 yMax = 0.35
 zMin = 0.25
 zMax = 0.35
-useWorkSpace =True  # this variable will indicate that the reverse kinematics is only saving items for workspace 
-USEAngle     =True
-#define orientations to use
-#this are min max in degrees
-xMaxD =20
-xMinD =-20
-yMaxD =20
-yMinD =-20
-zMaxD =20
-zMinD =-20
+useWorkSpace =False  # this variable will indicate that the reverse kinematics is only saving items for workspace 
+
 
 
 with Client() as client:
@@ -126,54 +109,7 @@ with Client() as client:
             w+=1
 
     
-    def testWS ( jPos):
-        retval =True
-        if useWorkSpace:
-            #print("Using Workspace")
-            if jPos[0] > xMax or jPos[0]< xMin or jPos[1] > yMax or jPos[1]< yMin or jPos[2] > zMax or jPos[2]< zMin:
-                return False 
-            #must check orientation of end actuattor
-            if(USEAngle):
-                # x is rotational and can be ignored .  need y and z only
-                orAng = getArmOrientation()
-                yangle = radToDeg  (orAng[1])
-                zangle =radToDeg(orAng[2])
-
-                if (  yangle<yMinD or yangle>yMaxD  or zangle<zMinD or zangle>zMaxD ):
-                    return False                                                                                               
-
-
-                
-                #xMaxD =20
-                #xMinD =-20
-                #yMaxD =20
-                #yMinD =-20
-                #zMaxD =20
-                #zMinD =-20
-        return retval
-
-
-
-
-    def invK():
-        stp=1
-        for a in range (joints["j1"]["min"],joints["j1"]["max"],stp):
-            for b in range (joints["j2"]["min"],joints["j2"]["max"],stp):
-                for c in range (joints["j3"]["min"],joints["j3"]["max"],stp):
-                    for d in range (joints["j4"]["min"],joints["j4"]["max"],stp):
-                        for e in range (joints["j5"]["min"],joints["j5"]["max"],stp):
-                            for f in range (joints["j6"]["min"],joints["j6"]["max"],stp):
-                                for g in range (joints["j7"]["min"],joints["j7"]["max"],stp):
-                                    movAll([a,b,c,d,e,f,g])
-                                    lc =getArmPos()
-                                    #is orientation correct
-                                    orr =getArmOrientation()
-                                    
-                                    #is distance corect
-                                    if( testWS(lc)):
-                                        print ("ORR -{} \n".format(orr))
-                                        txtOutLn = "{},{},{},{},{},{},{},{},{},{}\n".format(lc[0],lc[1],lc[2],a,b,c,d,e,f,g       )
-                                        f3dout.write(txtOutLn)
+ 
 
     
     
@@ -186,6 +122,12 @@ with Client() as client:
         print ('Connected to remote API server')
         Yumi= 'YUMI'
         rFinger = "gripper_r_finger_r_visual"
+        floor ="Floor_visible"
+        ec,rFloor =sim.simxGetObjectHandle(client.id,floor,sim.simx_opmode_blocking)
+        print( "ecfFLOOR",ec)
+
+        basehandle =-1
+        basehandle = rFloor
         #get joinds store in massive dict
         ec,rFingerh =sim.simxGetObjectHandle(client.id,rFinger,sim.simx_opmode_blocking)
         print( "ecf",ec)
@@ -240,35 +182,31 @@ with Client() as client:
         #st, loc =sim.simxGetObjectPosition(client.id,Yumih, -1,  sim.simx_opmode_blocking)
         #print(st )
         #print (loc) 
-        
+        #rFloor
+        sim.simxSetObjectOrientation(client.id,rFloor,-1,[0,0,degToRad(90)],sim.simx_opmode_blocking)
         #move to center
-        err, pos = sim.simxGetObjectPosition(client.id,Yumih,-1,sim.simx_opmode_blocking)  
-        sim.simxSetObjectPosition(client.id,Yumih,-1,[0,0,0],sim.simx_opmode_blocking)
-        sim.simxSetObjectOrientation(client.id,Yumih,-1,[0,0,0],sim.simx_opmode_blocking)
+        err, pos = sim.simxGetObjectPosition(client.id,Yumih,basehandle,sim.simx_opmode_blocking)  
+        sim.simxSetObjectPosition(client.id,Yumih,basehandle,[0,0,0],sim.simx_opmode_blocking)
+        sim.simxSetObjectOrientation(client.id,Yumih,basehandle,[0,0,0],sim.simx_opmode_blocking)
         # lets get moving some joints
         
         sim.simxSetJointPosition(client.id,joints ["j3"]["handle"],0,sim.simx_opmode_blocking)
-        #TrackJoint(joints["j5"]["handle"])
-        #TrackJoint("j5")
-        #sim.simxSetObjectOrientation(client.id,rFingerh,-1,[0,0,2],sim.simx_opmode_blocking)
-
-        #sim.simxSetObjectOrientation(client.id,rFingerh,-1,[0,0,0],sim.simx_opmode_blocking)
-
-        #sim.simxSetObjectOrientation(client.id,rFingerh,-1,[.5,0,0],sim.simx_opmode_blocking)
+        ps=0
+        while ps<(2* math.pi):
         
-        #TEST ORIENTATION
-        #ps=0
-        #while ps<2:
+            #sim.simxSetObjectOrientation(client.id,Yumih,basehandle,[0,ps,0],sim.simx_opmode_blocking)
+            
+            sim.simxSetObjectOrientation(client.id,Yumih,basehandle,[ps,0,0],sim.simx_opmode_blocking)
+            st, orr=sim.simxGetObjectOrientation(client.id,Yumih,basehandle,sim.simx_opmode_blocking)
+            print (ps,radToDeg(ps),radToDeg(orr[0]))
+            ps+=.1
+            
         
-        #    sim.simxSetObjectOrientation(client.id,Yumih,-1,[0,0,ps],sim.simx_opmode_blocking)
-        #    ps+=.01
-        #    print (ps,radToDeg(ps))
-        
-        
+        ###what have we learned  [0,y,z]  changes angle around z access
 
         
         
-        invK()
+        #invK()
         
         
         
