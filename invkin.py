@@ -59,7 +59,9 @@ yMax = 0.35
 zMin = 0.25
 zMax = 0.35
 useWorkSpace =True  # this variable will indicate that the reverse kinematics is only saving items for workspace 
-USEAngle     =True
+USEAngle     =True   # wheter resticting based on angle.
+OneValueSearch =False  # this is to be used if testing for only one value
+valtoSearch=[]
 #define orientations to use
 #this are min max in degrees
 xMaxD =20
@@ -129,27 +131,30 @@ with Client() as client:
     def testWS ( jPos):
         retval =True
         if useWorkSpace:
-            #print("Using Workspace")
-            if jPos[0] > xMax or jPos[0]< xMin or jPos[1] > yMax or jPos[1]< yMin or jPos[2] > zMax or jPos[2]< zMin:
-                return False 
-            #must check orientation of end actuattor
-            if(USEAngle):
-                # x is rotational and can be ignored .  need y and z only
-                orAng = getArmOrientation()
-                yangle = radToDeg  (orAng[1])
-                zangle =radToDeg(orAng[2])
+            if(OneValueSearch):
+                print ("ONE POINT")
+                #do one point search here
+                rng = .0005
+                #valtoSearch
+                if (jPos[0] > valtoSearch[0]-rng and jPos[0]< valtoSearch[0]+rng and
+                    jPos[1] > valtoSearch[1]-rng and jPos[1]< valtoSearch[1]+rng and
+                    jPos[2] > valtoSearch[2]-rng and jPos[2]< valtoSearch[0]+rng ):
+                    return True
+                else:
+                    return False
+            else:
+                #print("Using Workspace")
+                if jPos[0] > xMax or jPos[0]< xMin or jPos[1] > yMax or jPos[1]< yMin or jPos[2] > zMax or jPos[2]< zMin:
+                    return False 
+                #must check orientation of end actuattor
+                if(USEAngle):
+                    # x is rotational and can be ignored .  need y and z only
+                    orAng = getArmOrientation()
+                    yangle = radToDeg  (orAng[1])
+                    zangle =radToDeg(orAng[2])
 
-                if (  yangle<yMinD or yangle>yMaxD  or zangle<zMinD or zangle>zMaxD ):
-                    return False                                                                                               
-
-
-                
-                #xMaxD =20
-                #xMinD =-20
-                #yMaxD =20
-                #yMinD =-20
-                #zMaxD =20
-                #zMinD =-20
+                    if (  yangle<yMinD or yangle>yMaxD  or zangle<zMinD or zangle>zMaxD ):
+                        return False                                                                                               
         return retval
 
 
@@ -174,7 +179,8 @@ with Client() as client:
                                         print ("ORR -{} \n".format(orr))
                                         txtOutLn = "{},{},{},{},{},{},{},{},{},{}\n".format(lc[0],lc[1],lc[2],a,b,c,d,e,f,g       )
                                         f3dout.write(txtOutLn)
-
+                                        if(OneValueSearch):
+                                            return
     
     
     
