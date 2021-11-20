@@ -78,7 +78,7 @@ with Client() as client:
     sim.simxSetObjectOrientation(client.id,rBasket,rFloor,[0,0,0],sim.simx_opmode_blocking)
     sim.simxSetObjectPosition(client.id,rBasket,rFloor,[0,-.5,.05],sim.simx_opmode_blocking)
     st, basketPos =sim.simxGetObjectPosition(client.id,rBasket, rFloor,  sim.simx_opmode_blocking)
-    print(basketPos)
+    print("Basket",basketPos)
     
     #tree
     st, treePos =sim.simxGetObjectPosition(client.id,rtree, rFloor,  sim.simx_opmode_blocking)
