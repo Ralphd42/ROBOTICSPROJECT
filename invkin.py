@@ -39,7 +39,7 @@ class Client:
     def __enter__(self):
         
         #self.executedMovId1='notReady'
-        self.fname="invkWS.txt"
+        self.fname="invBasket.txt"
          
         sim.simxFinish(-1) # just in case, close all opened connections
         self.id=sim.simxStart('127.0.0.1',19999,True,True,5000,5) # Connect to CoppeliaSim
@@ -61,7 +61,7 @@ zMax = 0.35
 useWorkSpace =True  # this variable will indicate that the reverse kinematics is only saving items for workspace 
 USEAngle     =True   # wheter resticting based on angle.
 OneValueSearch =False  # this is to be used if testing for only one value
-valtoSearch=[]
+valtoSearch=[0.0, -0.5, 0.2]
 #define orientations to use
 #this are min max in degrees
 xMaxD =20
@@ -248,12 +248,12 @@ with Client() as client:
         #print (loc) 
         
         #move to center
-        err, pos = sim.simxGetObjectPosition(client.id,Yumih,-1,sim.simx_opmode_blocking)  
-        sim.simxSetObjectPosition(client.id,Yumih,-1,[0,0,0],sim.simx_opmode_blocking)
-        sim.simxSetObjectOrientation(client.id,Yumih,-1,[0,0,0],sim.simx_opmode_blocking)
+       # err, pos = sim.simxGetObjectPosition(client.id,Yumih,-1,sim.simx_opmode_blocking)  
+        #sim.simxSetObjectPosition(client.id,Yumih,-1,[0,0,0],sim.simx_opmode_blocking)
+        #sim.simxSetObjectOrientation(client.id,Yumih,-1,[0,0,0],sim.simx_opmode_blocking)
         # lets get moving some joints
         
-        sim.simxSetJointPosition(client.id,joints ["j3"]["handle"],0,sim.simx_opmode_blocking)
+        #sim.simxSetJointPosition(client.id,joints ["j3"]["handle"],0,sim.simx_opmode_blocking)
         #TrackJoint(joints["j5"]["handle"])
         #TrackJoint("j5")
         #sim.simxSetObjectOrientation(client.id,rFingerh,-1,[0,0,2],sim.simx_opmode_blocking)

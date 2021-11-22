@@ -1,0 +1,32 @@
+function sysCall_init()
+    sensorH=sim.getObjectHandle(sim.handle_self)
+    counter=0
+    handleEvery=5 -- handle the sensor every 5th simulation frame
+    if not simIM then
+        sim.msgBox(sim.msgbox_type_warning,sim.msgbox_buttons_ok,"Image Plugin","The image plugin (simExtImage) was not found, or could not correctly be loaded. Image processing based on that plugin will not be executed.")
+    end
+end
+
+function sysCall_cleanup()
+    sim.resetVisionSensor(sensorH)
+end
+
+function sysCall_sensing()
+    -- We explicitly handle the vision sensor (the sensor is flagged as "Explicit handling"):
+    if (counter % handleEvery)==0 then
+        local trigger,packet1,packet2=sim.handleVisionSensor(sensorH)
+        if trigger==1 then
+            sim.addLog(sim.verbosity_scriptinfos,"Sensor was triggered. Packet 2 contains: "..getAsString(packet2))
+        end
+    end
+    counter=counter+1
+end
+
+function sysCall_vision(inData)
+ local imgHandle=simIM.readFromVisionSensor(inData.handle)
+    --local center={inData.resolution[1]/2,inData.resolution[2]/2}
+    --local radius=(inData.resolution[1]+inData.resolution[2])/8
+    --simIM.circle(imgHandle,center,radius,{255,0,255},4)
+    simIM.writeToVisionSensor(imgHandle,inData.handle)
+    simIM.destroy(imgHandle)
+end
