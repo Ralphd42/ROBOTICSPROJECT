@@ -1,6 +1,11 @@
+from numpy.lib.function_base import append
 import sim
 import numpy as np
 import csv
+import math
+import time
+import cv2
+import numpy as np
 class Client:
     
     def __enter__(self):
@@ -15,22 +20,16 @@ class Client:
     def __exit__(self,*err):
         sim.simxFinish(-1)
         print ('Program ended')
-
-
-
-
-
 # load inverse kineiteics
 def LoadInvKin(fileName):
     csv_file =  open(fileName)  
     rdr = csv.reader(csv_file, delimiter=',')
     print(rdr)
     global inverseK
+    for itm in list(rdr):
+        if( itm[0]  >= (dist -xThresh )   and  itm[0]  <= (dist +xThresh )):
+            inverseK.append(itm)
     inverseK = list(rdr)
-    print (inverseK)
-    #line_count = 0
-    #for row in csv_reader:
-    #    line_count +=1
 
 def findJointPost( coord):
     varrng = .0005
@@ -44,32 +43,107 @@ def findJointPost( coord):
             i[2]<= (coord[2]+varrng) ):
             print("found it")
             return i[3:]
-
+    print("Need to tweek invK")
 def movAll( aAll):
-        w=0
-        while w<len(aAll):
-            s = "j" + str(w+1)
-            jnt =joints[s]
-            sim.simxSetJointPosition(client.id,jnt["handle"],aAll[w]*math.pi/180,sim.simx_opmode_blocking)
-            w+=1
+    w=0
+    while w<len(aAll):
+        s = "j" + str(w+1)
+        jnt =joints[s]
+        sim.simxSetJointPosition(client.id,jnt["handle"],aAll[w]*math.pi/180,sim.simx_opmode_blocking)
+        w+=1
+
+def get1ImageforOrt():
+    ec, res, img = sim.simxGetVisionSensorImage(client.id, hV1, 0, sim.simx_opmode_buffer )            
+    while  ec != sim.simx_return_ok:           
+        time.sleep(0.4)
+        ec, res, img = sim.simxGetVisionSensorImage(client.id, hV1, 0, sim.simx_opmode_buffer )
+    im = np.array(img, dtype =np.uint8)
+    im.resize([res [0], res[1], 3])
+    global imgdata
+    imgdata = im.copy()
+def OpenGrip():
+    sim.simxSetJointPosition(client.id,griph  ,2 ,sim.simx_opmode_blocking)
+    sim.simxSetJointPosition(client.id,griphmh,2 ,sim.simx_opmode_blocking)
+def CloseGrip():
+    sim.simxSetJointPosition(client.id,griph  ,.1,sim.simx_opmode_blocking)
+    sim.simxSetJointPosition(client.id,griphmh,.1,sim.simx_opmode_blocking)
+def getObjectstoPick():
+    imghsv =cv2.cvtColor(imgdata,cv2.COLOR_BGR2HSV)
+    #use threshholds from blob2.py
+    # these can change
+    # create a mask
+    thMask =  cv2.inRange(imghsv, (56,179,120),(195,255,255))
+    thMask = cv2.erode(thMask, None, iterations=3)
+    thMask = cv2.dilate(thMask, None, iterations=3)
+    prms = cv2.SimpleBlobDetector_Params()
+    prms.minThreshold = 0 
+    prms.maxThreshold = 100 
+ 
+    # Filter by Area.
+    prms.filterByArea = True
+    prms.minArea = 400
+    prms.maxArea = 20000
+ 
+    # Filter by Circularity
+    prms.filterByCircularity = False
+    prms.minCircularity = 0.1
+ 
+    # Filter by Convexity
+    prms.filterByConvexity = False
+    prms.minConvexity = 0.5
+    # Filter by Inertia
+    prms.filterByInertia = False
+    prms.minInertiaRatio = 0.5
+    # Detect blobs
+    detector = cv2.SimpleBlobDetector_create(prms)
+    keypoints = detector.detect(255-thMask)
+    #detector = cv2.SimpleBlobDetector()
+ 
 
 
 
+    print(keypoints)
+    global fruitLocs
 
-
+    for kp in keypoints:
+        y,z = kp.pt
+        pnt =[]
+        pnt [0] =dist
+        pnt [1] = y
+        pnt [2] = z  
+        fruitLocs.append(pnt)
+def pickItems():
+    OpenGrip()
+    for itm in fruitLocs:
+        print("")
+        movAll(findJointPost(itm))
+        CloseGrip()
+        movAll(basketcoords)
+        OpenGrip()
 
 
 with Client() as client:
     #start prog
-    
+    xThresh  =0.001
+    dist     = 1
     inverseK =[]  #  inverse kinematics
-    basketLoc=[]
+    basketLoc=[]  # location of Basket
+    imgdata  =[]   #this is the image retrieved from the sensor.
+    fruitLocs=[] #  these are the locations of the fruits
+    V1="V1"  #VisionSensor
+    Yumi= 'YUMI'  #the YUMI
+    rFinger = "gripper_r_finger_r_visual"  # end of the finger
+    ec,hV1 =sim.simxGetObjectHandle(client.id,V1,sim.simx_opmode_blocking)
     LoadInvKin("invk.txt")
-    Yumi= 'YUMI'
-    rFinger = "gripper_r_finger_r_visual"
     #get joinds store in massive dict
     ec,rFingerh =sim.simxGetObjectHandle(client.id,rFinger,sim.simx_opmode_blocking)
     ec,Yumih = sim.simxGetObjectHandle(client.id,Yumi,sim.simx_opmode_blocking)
+    #Gripper Joints
+    grip  = "gripper_r_joint"
+    ec,griph = sim.simxGetObjectHandle(client.id,grip,sim.simx_opmode_blocking)
+    gripm = "gripper_r_joint_m"
+    ec,griphmh = sim.simxGetObjectHandle(client.id,gripm,sim.simx_opmode_blocking)
+    basketcoords=[]
     joints ={}
     joints ["j1"] ={"name":"yumi_joint_1_r", "handle":0, "min":-169,"max":169}
     joints ["j2"] ={"name":"yumi_joint_2_r", "handle":0, "min":-144,"max": 44}
@@ -86,6 +160,13 @@ with Client() as client:
             print("Failed getting handles",ec ,s,joints[s]["name"])
         joints[s]["handle"] = h
         i+=1 
+    #start processing
+    #1 get image ffrom vision sensor
+    get1ImageforOrt()
+    #process this data
+    getObjectstoPick()
+    #run the processor
+    pickItems()
 
 
 

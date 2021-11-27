@@ -1,6 +1,7 @@
-# the purpose of this is to help set up initial layout of Page.
-# it make sure simulation has stated at 0
-
+# the purpose of this is to help set up initial layout of simualation.
+# it make sure everything is in proper location.  Helps when doing changes in CS(CopeliaSim)
+# always remeber simRemoteApi.start(19999)
+#
 
 
 
@@ -41,14 +42,19 @@ with Client() as client:
     basket = "Basket_visible"
     tree = "indoorPlant_visible"
     apple = "RedApple1"
-
+    V1="V1"
+    
     ec,Yumih    = sim.simxGetObjectHandle(client.id,Yumi   ,sim.simx_opmode_blocking)
     ec,rFingerh = sim.simxGetObjectHandle(client.id,rFinger,sim.simx_opmode_blocking)
     ec,rFloor   = sim.simxGetObjectHandle(client.id,floor  ,sim.simx_opmode_blocking)
     ec,rBasket  = sim.simxGetObjectHandle(client.id,basket ,sim.simx_opmode_blocking)
     ec,rtree    = sim.simxGetObjectHandle(client.id,tree   ,sim.simx_opmode_blocking)
     ec,rApple   = sim.simxGetObjectHandle(client.id,apple  ,sim.simx_opmode_blocking)
-
+    ec,rV1      = sim.simxGetObjectHandle(client.id,V1     ,sim.simx_opmode_blocking)
+    
+    
+    
+    
     rbase = -1
     #rbase = rFloor
 
@@ -89,8 +95,14 @@ with Client() as client:
     #APPLE
     st, applepos =sim.simxGetObjectPosition(client.id,rApple, rFloor,  sim.simx_opmode_blocking)
     #sim.simxSetObjectPosition(client.id,rApple,rFloor,[.5,0,.4],sim.simx_opmode_blocking)
-    
     print ("APPLE" ,applepos)
+    #vision sensor
+    sim.simxSetObjectPosition(client.id,rV1,rFloor,[0,.1,.8],sim.simx_opmode_blocking)
+    sim.simxSetObjectOrientation(client.id,rV1,rFloor,[degToRad(0),degToRad(140),degToRad(0)],sim.simx_opmode_blocking)
+        
+
+
+    
 
 
 
