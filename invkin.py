@@ -29,7 +29,7 @@ except:
     print ('Make sure both are in the same folder as this file,')
     print ('or appropriately adjust the file "sim.py"')
     print ('--------------------------------------------------------------')
-    print ('simRemoteApi.start(19999)')
+    print ('simRemoteApi.start(19998)')
 #import sim
 import math
 from posixpath import join
@@ -39,10 +39,10 @@ class Client:
     def __enter__(self):
         
         #self.executedMovId1='notReady'
-        self.fname="invBasket.txt"
-         
+        self.fname="i9nvstep45FAST.txt"
+        self.fnameAll="i9nvstep4510AllFAST.txt"
         sim.simxFinish(-1) # just in case, close all opened connections
-        self.id=sim.simxStart('127.0.0.1',19999,True,True,5000,5) # Connect to CoppeliaSim
+        self.id=sim.simxStart('127.0.0.1',19998,True,True,5000,5) # Connect to CoppeliaSim
         return self
     
     def __exit__(self,*err):
@@ -52,29 +52,30 @@ class Client:
 #this will be the actual space the robot will work in
 # it isn't totally the correct workspace, because it will have to return to the basket and reset
 #x:0.22187452018260956 y:0.3554052412509918 z:0.45164451003074646
-xMin = 0.15
-xMax = 0.20
-yMin = 0.25
-yMax = 0.35
-zMin = 0.25
-zMax = 0.35
+xMin = 0.51
+xMax = 0.57
+yMin = -3
+yMax = 3
+zMin = 0
+zMax = 5
 useWorkSpace =True  # this variable will indicate that the reverse kinematics is only saving items for workspace 
 USEAngle     =True   # wheter resticting based on angle.
 OneValueSearch =False  # this is to be used if testing for only one value
 valtoSearch=[0.0, -0.5, 0.2]
 #define orientations to use
 #this are min max in degrees
-xMaxD =20
-xMinD =-20
+xMaxD =.56
+xMinD =-52
 yMaxD =20
 yMinD =-20
 zMaxD =20
 zMinD =-20
-
+step  =10
 
 with Client() as client:
     #INverseKinematics file
     f3dout = open(client.fname, "a")
+    f3doutAll = open(client.fnameAll, "a")
     #constants
     sIntv =0.000000001#.0625
     def degToRad(deg  ):
@@ -124,7 +125,9 @@ with Client() as client:
         while w<len(aAll):
             s = "j" + str(w+1)
             jnt =joints[s]
-            sim.simxSetJointPosition(client.id,jnt["handle"],aAll[w]*math.pi/180,sim.simx_opmode_blocking)
+            if jnt["init"] !=aAll[w]: 
+                sim.simxSetJointPosition(client.id,jnt["handle"],aAll[w]*math.pi/180,sim.simx_opmode_blocking)
+            jnt["init"] =aAll[w]
             w+=1
 
     
@@ -161,20 +164,22 @@ with Client() as client:
 
 
     def invK():
-        stp=1
+        stp=45
+        f=0
         for a in range (joints["j1"]["min"],joints["j1"]["max"],stp):
             for b in range (joints["j2"]["min"],joints["j2"]["max"],stp):
                 for c in range (joints["j3"]["min"],joints["j3"]["max"],stp):
                     for d in range (joints["j4"]["min"],joints["j4"]["max"],stp):
                         for e in range (joints["j5"]["min"],joints["j5"]["max"],stp):
-                            for f in range (joints["j6"]["min"],joints["j6"]["max"],stp):
+                            #for f in range (joints["j6"]["min"],joints["j6"]["max"],stp):
                                 for g in range (joints["j7"]["min"],joints["j7"]["max"],stp):
                                     movAll([a,b,c,d,e,f,g])
                                     lc =getArmPos()
                                     #is orientation correct
                                     orr =getArmOrientation()
-                                    
+                                    txtOutLn = "{},{},{},{},{},{},{},{},{},{}\n".format(lc[0],lc[1],lc[2],a,b,c,d,e,f,g       )
                                     #is distance corect
+                                    f3doutAll.write(txtOutLn)
                                     if( testWS(lc)):
                                         print ("ORR -{} \n".format(orr))
                                         txtOutLn = "{},{},{},{},{},{},{},{},{},{}\n".format(lc[0],lc[1],lc[2],a,b,c,d,e,f,g       )
@@ -198,13 +203,13 @@ with Client() as client:
         ec,Yumih = sim.simxGetObjectHandle(client.id,Yumi,sim.simx_opmode_blocking)
         print ("ecy",ec)
         joints ={}
-        joints ["j1"] ={"name":"yumi_joint_1_r", "handle":0, "min":-169,"max":169}
-        joints ["j2"] ={"name":"yumi_joint_2_r", "handle":0, "min":-144,"max": 44}
-        joints ["j3"] ={"name":"yumi_joint_3_r", "handle":0, "min":-124,"max": 80  }
-        joints ["j4"] ={"name":"yumi_joint_4_r", "handle":0, "min":-290  ,"max":290  }
-        joints ["j5"] ={"name":"yumi_joint_5_r", "handle":0, "min":-88   ,"max":138  }
-        joints ["j6"] ={"name":"yumi_joint_6_r", "handle":0, "min":-229  ,"max":229  }
-        joints ["j7"] ={"name":"yumi_joint_7_r", "handle":0, "min":-169,"max":169}
+        joints ["j1"] ={"name":"yumi_joint_1_r", "handle":0, "min":-169,"max":169,"init":0}
+        joints ["j2"] ={"name":"yumi_joint_2_r", "handle":0, "min":-144,"max": 44,"init":0}
+        joints ["j3"] ={"name":"yumi_joint_3_r", "handle":0, "min":-124,"max": 80,"init":0  }
+        joints ["j4"] ={"name":"yumi_joint_4_r", "handle":0, "min":-290  ,"max":290,"init":0  }
+        joints ["j5"] ={"name":"yumi_joint_5_r", "handle":0, "min":-88   ,"max":138,"init":0  }
+        joints ["j6"] ={"name":"yumi_joint_6_r", "handle":0, "min":-229  ,"max":229,"init":0  }
+        joints ["j7"] ={"name":"yumi_joint_7_r", "handle":0, "min":-169,"max":169,"init":0}
         i=1
         while i<8:
             s = "j" + str(i) 

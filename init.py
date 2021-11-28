@@ -14,7 +14,7 @@ except:
     print ('Make sure both are in the same folder as this file,')
     print ('or appropriately adjust the file "sim.py"')
     print ('--------------------------------------------------------------')
-    print ('simRemoteApi.start(19999)')
+    print ('simRemoteApi.start(19998)')
 #import sim
 import math
 from posixpath import join
@@ -27,7 +27,7 @@ class Client:
         self.fname="invkWS.txt"
          
         sim.simxFinish(-1) # just in case, close all opened connections
-        self.id=sim.simxStart('127.0.0.1',19999,True,True,5000,5) # Connect to CoppeliaSim
+        self.id=sim.simxStart('127.0.0.1',19998,True,True,5000,5) # Connect to CoppeliaSim
         return self
     
     def __exit__(self,*err):

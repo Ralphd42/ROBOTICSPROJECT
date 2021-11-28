@@ -7,11 +7,9 @@ import time
 import cv2
 import numpy as np
 class Client:
-    
     def __enter__(self):
-        self.fname ='ThreeDPlotData' #change to something better later this will hold xyz data
+         
         self.executedMovId1='notReady'
-        self.fname="invk.txt"
          
         sim.simxFinish(-1) # just in case, close all opened connections
         self.id=sim.simxStart('127.0.0.1',19999,True,True,5000,5) # Connect to CoppeliaSim
@@ -20,17 +18,24 @@ class Client:
     def __exit__(self,*err):
         sim.simxFinish(-1)
         print ('Program ended')
+
 # load inverse kineiteics
 def LoadInvKin(fileName):
-    csv_file =  open(fileName)  
-    rdr = csv.reader(csv_file, delimiter=',')
-    print(rdr)
+    print("Starting LoadInvKin ")
+    csv_file =  open(fileName,'r')  
+    rdr = csv.reader(csv_file)#, delimiter=','
+    print(list(rdr)[0])
     global inverseK
-    for itm in list(rdr):
+    for itm in  rdr:
+        print("!")
+        print (itm)
+        print ("!")
         if( itm[0]  >= (dist -xThresh )   and  itm[0]  <= (dist +xThresh )):
+            print (itm)
+            print ("ADDED")
             inverseK.append(itm)
     inverseK = list(rdr)
-
+    print("Ending LoadInvKin  ")
 def findJointPost( coord):
     varrng = .0005
     for i in inverseK:
@@ -44,6 +49,7 @@ def findJointPost( coord):
             print("found it")
             return i[3:]
     print("Need to tweek invK")
+
 def movAll( aAll):
     w=0
     while w<len(aAll):
@@ -61,12 +67,15 @@ def get1ImageforOrt():
     im.resize([res [0], res[1], 3])
     global imgdata
     imgdata = im.copy()
+
 def OpenGrip():
     sim.simxSetJointPosition(client.id,griph  ,2 ,sim.simx_opmode_blocking)
     sim.simxSetJointPosition(client.id,griphmh,2 ,sim.simx_opmode_blocking)
+
 def CloseGrip():
     sim.simxSetJointPosition(client.id,griph  ,.1,sim.simx_opmode_blocking)
     sim.simxSetJointPosition(client.id,griphmh,.1,sim.simx_opmode_blocking)
+
 def getObjectstoPick():
     imghsv =cv2.cvtColor(imgdata,cv2.COLOR_BGR2HSV)
     #use threshholds from blob2.py
@@ -98,13 +107,8 @@ def getObjectstoPick():
     detector = cv2.SimpleBlobDetector_create(prms)
     keypoints = detector.detect(255-thMask)
     #detector = cv2.SimpleBlobDetector()
- 
-
-
-
-    print(keypoints)
+    #print(keypoints)
     global fruitLocs
-
     for kp in keypoints:
         y,z = kp.pt
         pnt =[]
@@ -112,6 +116,7 @@ def getObjectstoPick():
         pnt [1] = y
         pnt [2] = z  
         fruitLocs.append(pnt)
+
 def pickItems():
     OpenGrip()
     for itm in fruitLocs:
@@ -120,7 +125,6 @@ def pickItems():
         CloseGrip()
         movAll(basketcoords)
         OpenGrip()
-
 
 with Client() as client:
     #start prog
@@ -134,7 +138,8 @@ with Client() as client:
     Yumi= 'YUMI'  #the YUMI
     rFinger = "gripper_r_finger_r_visual"  # end of the finger
     ec,hV1 =sim.simxGetObjectHandle(client.id,V1,sim.simx_opmode_blocking)
-    LoadInvKin("invk.txt")
+    LoadInvKin("invkWSALL.txt")
+    print("____________________________________________________")
     #get joinds store in massive dict
     ec,rFingerh =sim.simxGetObjectHandle(client.id,rFinger,sim.simx_opmode_blocking)
     ec,Yumih = sim.simxGetObjectHandle(client.id,Yumi,sim.simx_opmode_blocking)
@@ -167,9 +172,3 @@ with Client() as client:
     getObjectstoPick()
     #run the processor
     pickItems()
-
-
-
-
-
-
